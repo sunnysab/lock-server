@@ -24,7 +24,7 @@ async fn main() -> anyhow::Result<()> {
     });
 
     loop {
-        async_std::task::sleep(Duration::from_secs(1));
+        async_std::task::sleep(Duration::from_secs(1)).await;
         // Do nothing
     }
 }
