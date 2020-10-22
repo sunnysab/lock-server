@@ -1,5 +1,7 @@
+use async_std::io::{BufReader, BufWriter};
 use async_std::net::{TcpListener, TcpStream};
 use async_std::prelude::*;
+use futures_util::io::AsyncReadExt;
 use log::{error, info, warn};
 
 pub struct LockServer;
@@ -44,28 +46,34 @@ impl LockServer {
         let server_socket = TcpListener::bind(lock_addr).await?;
         info!("Listening on {}", server_socket.local_addr()?);
 
-        let mut buffer = vec![0u8; 10];
         while let (mut stream, peer) = server_socket.accept().await? {
-            info!("Accepted connection from {}", peer.ip().to_string());
+            async_std::task::spawn(async move {
+                let (rx, tx) = stream.split();
 
-            loop {
-                match stream.read(&mut buffer).await {
-                    Ok(0) => {
-                        warn!("Connection lost.");
-                        break;
-                    }
-                    Ok(size) => {
-                        info!("Packet received: {:?}", &buffer[..size]);
-                        if size == 5 {
-                            stream.write_all(&[0x01, 0x00, 0x00, 0x00, 0x00]).await;
+                // let buf: BufReader<ReadHalf<TcpStream>> = BufReader::new(rx);
+                // let buf_w: BufWriter<WriteHalf<TcpStream>> = BufWriter::new(tx);
+                let mut buffer = vec![0u8; 10];
+                info!("Accepted connection from {}", peer.ip().to_string());
+
+                loop {
+                    match stream.read(&mut buffer).await {
+                        Ok(0) => {
+                            warn!("Connection lost.");
+                            break;
+                        }
+                        Ok(size) => {
+                            info!("Packet received: {:?}", &buffer[..size]);
+                            if size == 5 {
+                                stream.write_all(&[0x01, 0x00, 0x00, 0x00, 0x00]).await;
+                            }
+                        }
+                        Err(e) => {
+                            warn!("Failed to read from tcp stream: {}", e.to_string());
+                            break;
                         }
                     }
-                    Err(e) => {
-                        warn!("Failed to read from tcp stream: {}", e.to_string());
-                        break;
-                    }
                 }
-            }
+            });
         }
         Ok(())
     }
