@@ -1,7 +1,4 @@
-use async_std::io::{BufReader, BufWriter};
-use async_std::net::{TcpListener, TcpStream};
-use async_std::prelude::*;
-use futures_util::io::AsyncReadExt;
+use async_std::net::UdpSocket;
 use log::{error, info, warn};
 
 pub struct LockServer;
@@ -43,38 +40,34 @@ pub fn bytes_to_u32(bytes: &[u8; 4]) -> u32 {
 
 impl LockServer {
     pub async fn start(lock_addr: &str) -> anyhow::Result<()> {
-        let server_socket = TcpListener::bind(lock_addr).await?;
-        info!("Listening on {}", server_socket.local_addr()?);
+        let server = UdpSocket::bind(lock_addr).await?;
+        info!("Listening on {}", server.local_addr()?);
 
-        while let (mut stream, peer) = server_socket.accept().await? {
-            async_std::task::spawn(async move {
-                let (rx, tx) = stream.split();
+        let mut buffer = vec![0u8; 10];
 
-                // let buf: BufReader<ReadHalf<TcpStream>> = BufReader::new(rx);
-                // let buf_w: BufWriter<WriteHalf<TcpStream>> = BufWriter::new(tx);
-                let mut buffer = vec![0u8; 10];
-                info!("Accepted connection from {}", peer.ip().to_string());
-
-                loop {
-                    match stream.read(&mut buffer).await {
-                        Ok(0) => {
-                            warn!("Connection lost.");
-                            break;
-                        }
-                        Ok(size) => {
-                            info!("Packet received: {:?}", &buffer[..size]);
-                            if size == 5 {
-                                stream.write_all(&[0x01, 0x00, 0x00, 0x00, 0x00]).await;
-                            }
-                        }
-                        Err(e) => {
-                            warn!("Failed to read from tcp stream: {}", e.to_string());
-                            break;
+        loop {
+            match server.recv_from(&mut buffer).await {
+                Ok((size, peer)) => {
+                    info!(
+                        "Packet received from [{}]: {:?}",
+                        peer.to_string(),
+                        &buffer[..size]
+                    );
+                    if size == 5 {
+                        let response_result =
+                            server.send_to(&[0x01, 0x00, 0x00, 0x00, 0x00], peer).await;
+                        if let Err(e) = response_result {
+                            warn!("Failed responding to {}: {}", peer.to_string(), e);
                         }
                     }
                 }
-            });
+                Err(e) => {
+                    error!("Failed to recv from socket: {}", e);
+                    break;
+                }
+            }
         }
+        warn!("Loop exit.");
         Ok(())
     }
 }
