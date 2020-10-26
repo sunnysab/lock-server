@@ -1,45 +1,30 @@
+use crate::auth::{CardIdType, User, UserManager};
+use crate::protocol::{LockCommand, LockRequest};
+use crate::util::bytes_to_u32;
+use crate::EnvData;
+use anyhow::Result;
 use async_std::net::UdpSocket;
 use log::{error, info, warn};
 
 pub struct LockServer;
 
-#[derive(Debug, thiserror::Error)]
-pub enum ProtocolError {
-    #[error("数据长度不足")]
-    TooSmallPacket,
-    #[error("未指定的指令")]
-    UnexpectedCommand,
+async fn on_unlock_request(env: EnvData, card_id: CardIdType) -> Result<Option<Vec<u8>>> {
+    let manager = UserManager::new(env);
+    if let Some(u) = manager.query_by_card(card_id).await? {
+        return Ok(Some(LockCommand::Unlock(u.card as u32).into()));
+    }
+    Ok(None)
 }
 
-// fn read_message(mut stream: TcpStream) {
-//
-// }
-//
-// fn execute_message(message: &Vec<u8>, size: usize) -> Result<(), String> {
-//     if size < 5 {
-//         return Err(ProtocolError::TooSmallPacket.into());
-//     }
-//
-//     match &message[0] {
-//         0x00 => {
-//             let uid = message[1..=4];
-//
-//         },
-//         _ => return Err(ProtocolError::UnexpectedCommand.into()),
-//     }
-//     Ok(())
-// }
-
-#[inline]
-pub fn bytes_to_u32(bytes: &[u8; 4]) -> u32 {
-    return ((bytes[0] as u32) << 24)
-        + ((bytes[1] as u32) << 16)
-        + ((bytes[2] as u32) << 8)
-        + bytes[3] as u32;
+async fn execute_message(env: EnvData, message_in: Vec<u8>) -> Result<Option<Vec<u8>>> {
+    /* Process the lock request and respond to the lock. */
+    return match LockRequest::from_message(message_in)? {
+        LockRequest::Unlock(card_id) => on_unlock_request(env, card_id as i64).await,
+    };
 }
 
 impl LockServer {
-    pub async fn start(lock_addr: &str) -> anyhow::Result<()> {
+    pub async fn start(lock_addr: &str, env: EnvData) -> Result<()> {
         let server = UdpSocket::bind(lock_addr).await?;
         info!("Listening on {}", server.local_addr()?);
 
