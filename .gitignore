@@ -1,1 +1,7 @@
+# Build directory
 /target
+
+# DB files
+lock.db
+lock.db-shm
+lock.db-wal
