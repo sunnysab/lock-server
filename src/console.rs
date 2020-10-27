@@ -1,10 +1,11 @@
+#![allow(dead_code)]
 mod auth;
 mod network;
 mod protocol;
 mod service;
 mod util;
 
-use auth::{User, UserManager};
+use auth::User;
 use sqlx::SqlitePool;
 use std::convert::TryFrom;
 use structopt::StructOpt;
@@ -40,13 +41,7 @@ async fn do_add(manager: auth::UserManager<'_>, new_user: Add) {
     let card_bytes = hex::decode(new_user.card).expect("Invalid card id, hex is needed.");
     let card = util::bytes_to_u32(<&[u8; 4]>::try_from(card_bytes.as_slice()).unwrap()) as i64;
 
-    let new: User = User {
-        student_id: new_user.id,
-        name: new_user.name,
-        card,
-        created_at: None,
-    };
-
+    let new = User::new(new_user.id, new_user.name, card);
     manager.add(new).await.unwrap();
 }
 

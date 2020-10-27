@@ -1,6 +1,5 @@
-use crate::auth::{CardIdType, User, UserManager};
+use crate::auth::{CardIdType, UserManager};
 use crate::protocol::{LockCommand, LockRequest};
-use crate::util::bytes_to_u32;
 use anyhow::Result;
 use async_std::net::UdpSocket;
 use log::{error, info, warn};
@@ -43,7 +42,10 @@ impl LockServer {
                     if let Ok(resp) = execute_message(&env, buffer[..size].to_vec()).await {
                         if let Some(content) = resp {
                             info!("Command: Open door");
-                            server.send_to(&content, peer).await;
+                            server.send_to(&content, peer).await.unwrap_or_else(|e| {
+                                warn!("Failed to send command to the lock: {}", e);
+                                0
+                            });
                             continue;
                         }
                     }

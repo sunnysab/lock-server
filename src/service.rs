@@ -9,7 +9,7 @@ pub async fn serve() -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn unlock_door(req: Request<()>) -> tide::Result<serde_json::Value> {
+async fn unlock_door(_req: Request<()>) -> tide::Result<serde_json::Value> {
     Ok(json!({
         "code": 0,
         "msg": String::from("已开门"),
