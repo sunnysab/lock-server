@@ -12,10 +12,10 @@ use structopt::StructOpt;
 #[derive(StructOpt)]
 pub(crate) struct Query {
     /// Unique id of student card
-    #[structopt()]
+    #[structopt(long)]
     card: Option<String>,
     /// Student id
-    #[structopt()]
+    #[structopt(long)]
     id: Option<String>,
 }
 
@@ -36,8 +36,7 @@ enum Command {
     Add(Add),
 }
 
-async fn do_add(pool: SqlitePool, new_user: Add) {
-    let manager = UserManager::new(&pool);
+async fn do_add(manager: auth::UserManager<'_>, new_user: Add) {
     let card_bytes = hex::decode(new_user.card).expect("Invalid card id, hex is needed.");
     let card = util::bytes_to_u32(<&[u8; 4]>::try_from(card_bytes.as_slice()).unwrap()) as i64;
 
@@ -51,7 +50,36 @@ async fn do_add(pool: SqlitePool, new_user: Add) {
     manager.add(new).await.unwrap();
 }
 
-async fn do_query() {}
+async fn do_query(manager: auth::UserManager<'_>, query: Query) {
+    let u: User;
+
+    match query {
+        Query { card: Some(card), .. } => {
+            let card_bytes = hex::decode(card).expect("Invalid card id, hex is needed.");
+            let card = util::bytes_to_u32(<&[u8; 4]>::try_from(card_bytes.as_slice()).unwrap()) as i64;
+
+            u = manager
+                .query_by_card(card)
+                .await
+                .expect("Failed to query")
+                .expect("No such user");
+        }
+        Query {
+            id: Some(student), ..
+        } => {
+            u = manager
+                .query_by_student_id(&student)
+                .await
+                .expect("Failed to query")
+                .expect("No such user")
+        }
+        _ => {
+            println!("Please specify a card id or student id to query.");
+            return;
+        }
+    }
+    println!("{:?}", u);
+}
 
 #[async_std::main]
 async fn main() {
@@ -60,16 +88,9 @@ async fn main() {
     /* Connect (Open) database */
     let pool = SqlitePool::new("sqlite:lock.db").await.unwrap();
     let manager = auth::UserManager::new(&pool);
-    //
-    // let u = manager.query_by_student_id("1812100505").await;
-    // println!("{:?}", u);
-    //
-    // let card_id = crate::util::bytes_to_u32(&[0x13, 0xBB, 0xA6, 0x15]);
-    // let u = manager.query_by_card(card_id as i64).await;
-    // println!("{:?}", u);
 
     match opt {
-        Command::Add(new_user) => do_add(pool, new_user).await,
-        Command::Query(query) => do_query().await,
+        Command::Add(new_user) => do_add(manager, new_user).await,
+        Command::Query(query) => do_query(manager, query).await,
     }
 }
