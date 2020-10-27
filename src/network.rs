@@ -8,7 +8,7 @@ use log::{error, info, warn};
 
 pub struct LockServer;
 
-async fn on_unlock_request(env: EnvData, card_id: CardIdType) -> Result<Option<Vec<u8>>> {
+async fn on_unlock_request(env: &EnvData, card_id: CardIdType) -> Result<Option<Vec<u8>>> {
     let manager = UserManager::new(env);
     if let Some(u) = manager.query_by_card(card_id).await? {
         return Ok(Some(LockCommand::Unlock(u.card as u32).into()));
@@ -16,7 +16,7 @@ async fn on_unlock_request(env: EnvData, card_id: CardIdType) -> Result<Option<V
     Ok(None)
 }
 
-async fn execute_message(env: EnvData, message_in: Vec<u8>) -> Result<Option<Vec<u8>>> {
+async fn execute_message(env: &EnvData, message_in: Vec<u8>) -> Result<Option<Vec<u8>>> {
     /* Process the lock request and respond to the lock. */
     return match LockRequest::from_message(message_in)? {
         LockRequest::Unlock(card_id) => on_unlock_request(env, card_id as i64).await,
@@ -38,13 +38,15 @@ impl LockServer {
                         peer.to_string(),
                         &buffer[..size]
                     );
-                    if size == 5 {
-                        let response_result =
-                            server.send_to(&[0x01, 0x00, 0x00, 0x00, 0x00], peer).await;
-                        if let Err(e) = response_result {
-                            warn!("Failed responding to {}: {}", peer.to_string(), e);
+
+                    if let Ok(resp) = execute_message(&env, buffer[..size].to_vec()).await {
+                        if let Some(content) = resp {
+                            info!("Command: Open door");
+                            server.send_to(&content, peer).await;
+                            continue;
                         }
                     }
+                    warn!("Refused to open the door");
                 }
                 Err(e) => {
                     error!("Failed to recv from socket: {}", e);

@@ -1,8 +1,8 @@
 use chrono::Utc;
 use sqlx::sqlite::{SqlitePool, SqliteQueryAs};
 
-pub struct UserManager {
-    pool: SqlitePool,
+pub struct UserManager<'a> {
+    pool: &'a SqlitePool,
 }
 
 pub(crate) type CardIdType = i64;
@@ -31,8 +31,8 @@ impl User {
     }
 }
 
-impl UserManager {
-    pub fn new(pool: SqlitePool) -> Self {
+impl<'a> UserManager<'a> {
+    pub fn new(pool: &'a SqlitePool) -> Self {
         Self { pool }
     }
 
@@ -41,7 +41,7 @@ impl UserManager {
         let stu: Option<User> =
             sqlx::query_as("SELECT student_id, name, card, created_at FROM user WHERE card = $1")
                 .bind(card_id)
-                .fetch_optional(&self.pool)
+                .fetch_optional(self.pool)
                 .await?;
         Ok(stu)
     }
@@ -51,7 +51,7 @@ impl UserManager {
         let stu: Option<User> =
             sqlx::query_as("SELECT student_id, name, card, created_at FROM user WHERE student_id = $1")
                 .bind(student_id)
-                .fetch_optional(&self.pool)
+                .fetch_optional(self.pool)
                 .await?;
         Ok(stu)
     }
@@ -62,7 +62,7 @@ impl UserManager {
             .bind(new_user.student_id)
             .bind(new_user.name)
             .bind(new_user.card)
-            .execute(&self.pool)
+            .execute(self.pool)
             .await?;
         Ok(())
     }
@@ -71,7 +71,7 @@ impl UserManager {
     pub async fn remove(&self, student_id: String) -> anyhow::Result<()> {
         sqlx::query("DELETE FROM user WHERE student_id = $1")
             .bind(student_id)
-            .execute(&self.pool)
+            .execute(self.pool)
             .await?;
         Ok(())
     }
