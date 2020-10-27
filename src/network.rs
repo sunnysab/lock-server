@@ -1,10 +1,11 @@
 use crate::auth::{CardIdType, User, UserManager};
 use crate::protocol::{LockCommand, LockRequest};
 use crate::util::bytes_to_u32;
-use crate::EnvData;
 use anyhow::Result;
 use async_std::net::UdpSocket;
 use log::{error, info, warn};
+
+type EnvData = sqlx::SqlitePool;
 
 pub struct LockServer;
 

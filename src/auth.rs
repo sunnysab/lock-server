@@ -7,7 +7,7 @@ pub struct UserManager<'a> {
 
 pub(crate) type CardIdType = i64;
 
-#[derive(sqlx::FromRow)]
+#[derive(Debug, sqlx::FromRow)]
 pub struct User {
     /// Student id
     pub student_id: String,
@@ -47,7 +47,7 @@ impl<'a> UserManager<'a> {
     }
 
     /// Query user basic information by id.
-    pub async fn query_by_student_id(&self, student_id: String) -> anyhow::Result<Option<User>> {
+    pub async fn query_by_student_id(&self, student_id: &str) -> anyhow::Result<Option<User>> {
         let stu: Option<User> =
             sqlx::query_as("SELECT student_id, name, card, created_at FROM user WHERE student_id = $1")
                 .bind(student_id)
@@ -68,7 +68,7 @@ impl<'a> UserManager<'a> {
     }
 
     /// Remove an existed user.
-    pub async fn remove(&self, student_id: String) -> anyhow::Result<()> {
+    pub async fn remove(&self, student_id: &str) -> anyhow::Result<()> {
         sqlx::query("DELETE FROM user WHERE student_id = $1")
             .bind(student_id)
             .execute(self.pool)
