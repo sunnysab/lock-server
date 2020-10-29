@@ -7,8 +7,8 @@ const TYPE_UNLOOK_COMMAND: u8 = 1;
 /* Protocol errors */
 #[derive(Debug, thiserror::Error)]
 pub enum ProtocolError {
-    #[error("数据长度不足")]
-    TooSmallPacket,
+    // #[error("数据长度不足")]
+    // TooSmallPacket,
     #[error("未指定的指令")]
     UnexpectedCommand,
 }
@@ -26,9 +26,9 @@ pub enum LockCommand {
 impl LockRequest {
     /// Resolve requests from the lock
     pub fn from_message(message_in: Vec<u8>) -> std::result::Result<Self, ProtocolError> {
-        if message_in.len() < 5 {
-            return Err(ProtocolError::TooSmallPacket.into());
-        }
+        // if message_in.len() < 5 {
+        //     return Err(ProtocolError::TooSmallPacket.into());
+        // }
 
         let packet: Self;
         match message_in[0] {
