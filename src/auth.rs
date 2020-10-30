@@ -1,4 +1,5 @@
 use chrono::Utc;
+use serde::Deserialize;
 use sqlx::sqlite::{SqlitePool, SqliteQueryAs};
 
 pub struct UserManager<'a> {
@@ -7,9 +8,10 @@ pub struct UserManager<'a> {
 
 pub(crate) type CardIdType = i64;
 
-#[derive(Debug, sqlx::FromRow)]
+#[derive(Debug, Deserialize, sqlx::FromRow)]
 pub struct User {
     /// Student id
+    #[serde(rename = "studentId")]
     pub student_id: String,
     /// Student name
     pub name: String,

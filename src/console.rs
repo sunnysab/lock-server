@@ -2,7 +2,6 @@
 mod auth;
 mod network;
 mod protocol;
-mod service;
 mod util;
 
 use auth::User;

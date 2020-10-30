@@ -39,15 +39,19 @@ impl LockServer {
                         &buffer[..size]
                     );
 
-                    if let Ok(resp) = execute_message(&env, buffer[..size].to_vec()).await {
-                        if let Some(content) = resp {
-                            info!("Command: Open door");
-                            server.send_to(&content, peer).await.unwrap_or_else(|e| {
-                                warn!("Failed to send command to the lock: {}", e);
-                                0
-                            });
-                            continue;
+                    match execute_message(&env, buffer[..size].to_vec()).await {
+                        Ok(resp) => {
+                            info!("Execute message constructed: {:?}", resp);
+                            if let Some(content) = resp {
+                                info!("Command: Open door");
+                                server.send_to(&content, peer).await.unwrap_or_else(|e| {
+                                    warn!("Failed to send command to the lock: {}", e);
+                                    0
+                                });
+                                continue;
+                            }
                         }
+                        Err(e) => println!("{}", e.to_string()),
                     }
                     warn!("Refused to open the door");
                 }
