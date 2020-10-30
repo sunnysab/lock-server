@@ -3,6 +3,7 @@ use std::convert::TryFrom;
 
 const TYPE_UNLOCK_REQUEST: u8 = 0;
 const TYPE_UNLOOK_COMMAND: u8 = 1;
+const TYPE_BUTTON_PUSHED: u8 = 3;
 
 /* Protocol errors */
 #[derive(Debug, thiserror::Error)]
@@ -16,6 +17,8 @@ pub enum ProtocolError {
 pub enum LockRequest {
     /// Request to unlock by card
     Unlock(u32),
+    /// Unlock button report
+    ButtonReport,
 }
 
 pub enum LockCommand {
@@ -26,18 +29,13 @@ pub enum LockCommand {
 impl LockRequest {
     /// Resolve requests from the lock
     pub fn from_message(message_in: Vec<u8>) -> std::result::Result<Self, ProtocolError> {
-        // if message_in.len() < 5 {
-        //     return Err(ProtocolError::TooSmallPacket.into());
-        // }
-
-        let packet: Self;
-        match message_in[0] {
+        let packet: Self = match message_in[0] {
             TYPE_UNLOCK_REQUEST => {
-                packet =
-                    LockRequest::Unlock(bytes_to_u32(<&[u8; 4]>::try_from(&message_in[1..=4]).unwrap()));
+                LockRequest::Unlock(bytes_to_u32(<&[u8; 4]>::try_from(&message_in[1..=4]).unwrap()))
             }
+            TYPE_BUTTON_PUSHED => LockRequest::ButtonReport,
             _ => return Err(ProtocolError::UnexpectedCommand.into()),
-        }
+        };
         Ok(packet)
     }
 }
