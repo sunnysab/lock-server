@@ -2,6 +2,7 @@ use crate::auth::{CardIdType, UserManager};
 use crate::protocol::{LockCommand, LockRequest};
 use anyhow::Result;
 use async_std::net::UdpSocket;
+use chrono::Utc;
 use log::{error, info, warn};
 
 type EnvData = sqlx::SqlitePool;
@@ -19,6 +20,8 @@ async fn on_unlock_request(env: &EnvData, card_id: CardIdType) -> Result<Option<
     let manager = UserManager::new(pool);
 
     if let Some(u) = manager.query_by_card(card_id).await? {
+        // Write log to database
+        u.append_log(pool, Utc::now().timestamp()).await?;
         // Return a response command package.
         return Ok(Some(LockCommand::Unlock(u.card as u32).into()));
     }

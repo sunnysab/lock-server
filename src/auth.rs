@@ -8,6 +8,12 @@ pub struct UserManager<'a> {
 
 pub(crate) type CardIdType = i64;
 
+#[derive(sqlx::FromRow)]
+pub struct UnlockLog {
+    name: String,
+    ts: i64,
+}
+
 #[derive(Debug, Default, Deserialize, sqlx::FromRow)]
 pub struct User {
     /// Student id
@@ -30,6 +36,26 @@ impl User {
             card,
             created_at: Some(Utc::now().naive_local().timestamp()),
         }
+    }
+
+    pub async fn fetch_log(self, pool: &SqlitePool) -> anyhow::Result<Vec<UnlockLog>> {
+        let log = sqlx::query_as(
+            "SELECT name, unlock_at as ts FROM user, log
+            WHERE user.card = log.card_id AND user.student_id = $1",
+        )
+        .bind(self.student_id)
+        .fetch_all(pool)
+        .await?;
+        Ok(log)
+    }
+
+    pub async fn append_log(&self, pool: &SqlitePool, ts: i64) -> anyhow::Result<()> {
+        sqlx::query("INSERT INTO log (card_id, unlock_at) VALUES ($1, $2)")
+            .bind(&self.student_id)
+            .bind(ts)
+            .execute(pool)
+            .await?;
+        Ok(())
     }
 }
 
