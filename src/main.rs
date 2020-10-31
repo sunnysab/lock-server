@@ -5,7 +5,6 @@ mod protocol;
 mod service;
 mod util;
 
-use crate::network::LockServer;
 use log::error;
 use sqlx::SqlitePool;
 use std::time::Duration;
@@ -28,7 +27,7 @@ async fn main() -> anyhow::Result<()> {
     });
 
     async_std::task::spawn(async move {
-        if let Err(e) = LockServer::run("0.0.0.0:10292", pool2).await {
+        if let Err(e) = network::run("0.0.0.0:10292", pool2).await {
             error!("Lock server exited because {}", e);
         }
     });

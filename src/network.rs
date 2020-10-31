@@ -27,8 +27,10 @@ async fn on_unlock_request(env: &EnvData, card_id: CardIdType) -> Result<Option<
 }
 
 /// On inner unlock report, the function write the event to the log
-async fn on_button_pushed(env: &EnvData) -> Result<()> {
+async fn on_button_pushed(_env: &EnvData) -> Result<()> {
     // Write log
+
+    Ok(())
 }
 
 /// Dispatch lock requests, and call the corresponding processing function
@@ -36,7 +38,7 @@ async fn execute_message(env: &EnvData, message_in: Vec<u8>) -> Result<Option<Ve
     /* Process the lock request and respond to the lock. */
     match LockRequest::from_message(message_in)? {
         LockRequest::Unlock(card_id) => on_unlock_request(env, card_id as i64).await,
-        LockRequest::ButtonReport => on_button_pushed(env).await,
+        LockRequest::ButtonReport => on_button_pushed(env).await.map(|_| None),
     }
 }
 

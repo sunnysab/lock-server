@@ -16,11 +16,17 @@ pub async fn serve(env: EnvData) -> anyhow::Result<()> {
 // }
 
 async fn create_user(mut req: Request<EnvData>) -> tide::Result<serde_json::Value> {
-    let user: User = req.body_json().await.unwrap();
+    // Load user parameters
+    let user_param: User = req.body_json().await?;
+    let new_user = User::new(user_param.student_id, user_param.name, user_param.card);
+
+    // Open database
     let pool = req.state();
     let manager = UserManager::new(pool);
 
-    manager.add(user).await.unwrap();
+    // Add a new user to db.
+    manager.add(new_user).await?;
+
     Ok(json!({
         "code": 0,
     }))

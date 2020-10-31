@@ -1,17 +1,14 @@
 use crate::util::bytes_to_u32;
-use std::convert::TryFrom;
 
 const TYPE_UNLOCK_REQUEST: u8 = 0;
-const TYPE_UNLOOK_COMMAND: u8 = 1;
+const TYPE_UNLOCK_COMMAND: u8 = 1;
 const TYPE_BUTTON_PUSHED: u8 = 3;
 
 /* Protocol errors */
 #[derive(Debug, thiserror::Error)]
 pub enum ProtocolError {
-    // #[error("数据长度不足")]
-    // TooSmallPacket,
-    #[error("未指定的指令")]
-    UnexpectedCommand,
+    #[error("Un expected request received.")]
+    UnexpectedRequest,
 }
 
 pub enum LockRequest {
@@ -30,11 +27,9 @@ impl LockRequest {
     /// Resolve requests from the lock
     pub fn from_message(message_in: Vec<u8>) -> std::result::Result<Self, ProtocolError> {
         let packet: Self = match message_in[0] {
-            TYPE_UNLOCK_REQUEST => {
-                LockRequest::Unlock(bytes_to_u32(<&[u8; 4]>::try_from(&message_in[1..=4]).unwrap()))
-            }
+            TYPE_UNLOCK_REQUEST => LockRequest::Unlock(bytes_to_u32(&message_in[1..=4])),
             TYPE_BUTTON_PUSHED => LockRequest::ButtonReport,
-            _ => return Err(ProtocolError::UnexpectedCommand.into()),
+            _ => return Err(ProtocolError::UnexpectedRequest.into()),
         };
         Ok(packet)
     }
@@ -50,13 +45,7 @@ impl LockCommand {
 impl Into<Vec<u8>> for LockCommand {
     fn into(self) -> Vec<u8> {
         match self {
-            LockCommand::Unlock(card_id) => vec![
-                0x01u8,
-                (card_id >> 24) as u8,
-                (card_id >> 16 & 0xFF) as u8,
-                (card_id >> 8 & 0xFF) as u8,
-                (card_id & 0xFF) as u8,
-            ],
+            LockCommand::Unlock(_) => vec![0x01u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8],
         }
     }
 }

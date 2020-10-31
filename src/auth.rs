@@ -8,7 +8,7 @@ pub struct UserManager<'a> {
 
 pub(crate) type CardIdType = i64;
 
-#[derive(Debug, Deserialize, sqlx::FromRow)]
+#[derive(Debug, Default, Deserialize, sqlx::FromRow)]
 pub struct User {
     /// Student id
     #[serde(rename = "studentId")]

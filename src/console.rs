@@ -6,7 +6,6 @@ mod util;
 
 use auth::User;
 use sqlx::SqlitePool;
-use std::convert::TryFrom;
 use structopt::StructOpt;
 
 #[derive(StructOpt)]
@@ -38,7 +37,7 @@ enum Command {
 
 async fn do_add(manager: auth::UserManager<'_>, new_user: Add) {
     let card_bytes = hex::decode(new_user.card).expect("Invalid card id, hex is needed.");
-    let card = util::bytes_to_u32(<&[u8; 4]>::try_from(card_bytes.as_slice()).unwrap()) as i64;
+    let card = util::bytes_to_u32(&card_bytes) as i64;
 
     let new = User::new(new_user.id, new_user.name, card);
     manager.add(new).await.unwrap();
@@ -50,7 +49,7 @@ async fn do_query(manager: auth::UserManager<'_>, query: Query) {
     match query {
         Query { card: Some(card), .. } => {
             let card_bytes = hex::decode(card).expect("Invalid card id, hex is needed.");
-            let card = util::bytes_to_u32(<&[u8; 4]>::try_from(card_bytes.as_slice()).unwrap()) as i64;
+            let card = util::bytes_to_u32(&card_bytes) as i64;
 
             u = manager
                 .query_by_card(card)
