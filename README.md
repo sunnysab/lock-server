@@ -12,6 +12,11 @@
 - Debian 10 bluster
 - rustc 1.47.0
 
+## 客户端实现
+
+- [ESP8266实现](https://github.com/Zhangzqs/lock-client-esp8266)
+- [ESP32实现(未完成)](https://github.com/Zhangzqs/Lock-ESP32)
+
 ## 开源协议
 
 Copyright © 2020 sunnysab  
